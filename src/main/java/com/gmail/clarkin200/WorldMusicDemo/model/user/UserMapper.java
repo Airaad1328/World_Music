@@ -34,8 +34,13 @@ public class UserMapper {
         return newUser;
     }
 
-    public User dtoToUpdateUser (Long id ,UserDto dto) {
-        return null;
+
+    public User dtoToUpdateUser (UserDto dto ,User user) {
+
+        if(dto.username() != null){
+            user.setUsername(dto.username());
+        }
+        return user;
     }
 
 }

@@ -4,7 +4,9 @@ import com.gmail.clarkin200.WorldMusicDemo.dto.UserDto;
 import com.gmail.clarkin200.WorldMusicDemo.exception.HubSessionNotExistException;
 import com.gmail.clarkin200.WorldMusicDemo.model.HubSession;
 import com.gmail.clarkin200.WorldMusicDemo.model.user.UserCredential;
+import com.gmail.clarkin200.WorldMusicDemo.repository.postgres.UserRepository;
 import com.gmail.clarkin200.WorldMusicDemo.repository.redis.HubSessionRepository;
+import com.gmail.clarkin200.WorldMusicDemo.repository.redis.UserRedisRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,11 +21,14 @@ public class HubServiceImpl implements HubService{
 
     private HubSessionRepository hubSessionRepository;
     private UserService userService;
+    private UserRedisRepository userRedisRepository;
 
     public HubServiceImpl (@Qualifier("hubSessionRepository")HubSessionRepository hubSessionRepository,
-                           @Qualifier("userService")UserService userService) {
+                           @Qualifier("userService")UserService userService,
+                           @Qualifier("userRedisRepository")UserRedisRepository userRedisRepository) {
         this.hubSessionRepository = hubSessionRepository;
         this.userService = userService;
+        this.userRedisRepository = userRedisRepository;
     }
 
     @Override
@@ -46,8 +51,7 @@ public class HubServiceImpl implements HubService{
         UserCredential user = (UserCredential) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         System.out.println(user);
         entity.setHubSessionId(user.getUserId());
-        entity.setUsers(new ArrayList<>());
-        entity.getUsers().add(userService.findById(user.getUserId()).get());
+        entity.getUsers().put(user.getUserId(),userService.findById(user.getUserId()).get());
         return hubSessionRepository.create(entity);
     }
 
@@ -61,7 +65,7 @@ public class HubServiceImpl implements HubService{
         HubSession hubSession = hubSessionRepository.findById(hubId.toString()).get();
         if(userService.findById(userId).isPresent()) {
             UserDto userToAdd = userService.findById(userId).get();
-            hubSession.getUsers().add(userToAdd);
+            hubSession.getUsers().put(userId,userToAdd);
         }
         update(hubSession);
         hubSession = hubSessionRepository.findById(hubId.toString()).get();
@@ -74,8 +78,8 @@ public class HubServiceImpl implements HubService{
         if(userService.findById(userId).isPresent()) {
             UserDto userToDelete = userService.findById(userId).get();
             hubSession.getUsers().remove(userToDelete);
+            update(hubSession);
         }
-        update(hubSession);
         hubSession = hubSessionRepository.findById(hubId.toString()).get();
         return hubSession;
 
@@ -88,6 +92,25 @@ public class HubServiceImpl implements HubService{
             throw new HubSessionNotExistException(hubId.toString());
         }
         UserCredential user = (UserCredential) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        // Add User HubSession id to Redis
+        UserDto oldUser = userService.findById(user.getUserId()).get();
+        UserDto newUser = new UserDto(oldUser.id(),oldUser.username(),oldUser.email(), oldUser.password(),hubSession.get().getHubSessionId());
+        userRedisRepository.create(newUser);
         return addUserToHubById(user.getUserId(),hubId);
+    }
+
+    @Override
+    public boolean leaveHubSession (Long hubId) {
+        Optional<HubSession> hubSession = hubSessionRepository.findById(hubId.toString());
+        if(hubSession.isEmpty()) {
+            throw new HubSessionNotExistException(hubId.toString());
+        }
+        UserCredential user = (UserCredential) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        // Delete User HubSession id to Redis
+        UserDto oldUser = userService.findById(user.getUserId()).get();
+        UserDto newUser = new UserDto(oldUser.id(),oldUser.username(),oldUser.email(), oldUser.password(),null);
+        userRedisRepository.create(newUser);
+        return deleteUserFromHubById(user.getUserId(),hubId) != null;
+
     }
 }

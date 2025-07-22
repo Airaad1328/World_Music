@@ -6,4 +6,5 @@ public interface HubService extends BaseService<HubSession,Long>{
     HubSession addUserToHubById (Long userId,Long hubId);
     HubSession deleteUserFromHubById (Long userId,Long hubId);
     HubSession joinHubSession (Long hubSessionId);
+    boolean leaveHubSession (Long hubId);
 }

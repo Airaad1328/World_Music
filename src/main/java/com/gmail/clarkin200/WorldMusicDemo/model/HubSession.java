@@ -2,21 +2,21 @@ package com.gmail.clarkin200.WorldMusicDemo.model;
 
 import com.gmail.clarkin200.WorldMusicDemo.dto.UserDto;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class HubSession {
 
     private Long hubSessionId;
-    private List<UserDto> users;
+    private Map<Long,UserDto> users;
 
     public HubSession(Long hubSessionId, List<Long> userIds) {
         this.hubSessionId = hubSessionId;
-        this.users = new ArrayList<>();
+        this.users = new HashMap();
     }
 
-    public HubSession () {}
+    public HubSession () {
+        this.users = new HashMap();
+    }
 
     public Long getHubSessionId() {
         return hubSessionId;
@@ -26,11 +26,11 @@ public class HubSession {
         this.hubSessionId = hubSessionId;
     }
 
-    public List<UserDto> getUsers() {
+    public Map<Long,UserDto> getUsers() {
         return users;
     }
 
-    public void setUsers(List<UserDto> users) {
+    public void setUsers(Map<Long,UserDto> users) {
         this.users = users;
     }
 

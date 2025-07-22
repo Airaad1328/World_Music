@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -35,14 +37,23 @@ public class HubController {
     }
 
     @PostMapping("/{id}/join")
-    public ResponseEntity<HubSession> joinSession(@PathVariable Long id) {
+    public ResponseEntity<HubSession> joinHubSession(@PathVariable Long id) {
         return ResponseEntity.status(HttpStatus.OK).body(hubService.joinHubSession(id));
     }
 
     @PostMapping("/create")
-    public ResponseEntity<HubSession> createSession() {
+    public ResponseEntity<HubSession> createHubSession() {
         return ResponseEntity.status(HttpStatus.OK).body(hubService.create(new HubSession()).get());
     }
 
-
+    @PostMapping("/{id}/leave")
+    public ResponseEntity<Map<String,String>> leaveHubSession(@PathVariable Long id) {
+        Map<String,String> response = new HashMap<>();
+        if(hubService.leaveHubSession(id)) {
+            response.put("message","Leave Success");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        }
+        response.put("message","Leave Denied");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
 }
